@@ -228,7 +228,8 @@ function bindDetailButtons(){
   });
 }
 function details(btn,idx){
-  const x=data.groups[idx],tr=btn.closest("tr"),n=tr.nextElementSibling;
+  const x=data.groups[idx],tr=btn.closest("tr");
+  let n=tr.nextElementSibling;
   if(n&&n.classList.contains("detail")){n.remove();btn.textContent="›";return}
   const invested=x.invested||0, gain=x.gain!=null?x.gain:x.value-invested, gainPct=invested?gain/invested:null;
   const note=x.status==="needs"?`<div class="note">🟡 Den här positionen har en ticker/ISIN men EODHD-symbolen är ännu inte verifierad. Vi kopplar den när instrumentet är bekräftat.</div>`:"";
