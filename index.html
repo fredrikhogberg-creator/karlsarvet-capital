@@ -53,7 +53,7 @@ h2{font-size:18px;margin:0 0 14px;color:#e9ecef}h3{font-size:13px;color:#c6cdd3;
 <div id="holdings" class="section active"><div class="card"><h2>Innehav</h2>
 <div class="toolbar"><input id="search" placeholder="Sök position eller ticker/ISIN"><select id="sectorFilter"><option value="">Alla branscher</option></select><select id="assetFilter"><option value="">Alla tillgångsslag</option></select><select id="statusFilter"><option value="">Alla</option><option value="auto">Automatiska</option><option value="manual">Manuella</option><option value="needs">Behöver koppling</option></select><button id="clearCountry" class="tab" type="button">Rensa land</button><button id="refreshLive" class="tab" type="button">↻ Uppdatera kurser</button></div><div id="liveStatus" class="note">🔄 Kurskoppling: <strong>7</strong> verifierade instrument är redo för EODHD. Övriga noterade innehav markeras 🟡 tills deras EODHD-symbol är verifierad.</div>
 <div class="small muted" style="margin-bottom:10px">Klicka på <strong>＋</strong> för fullständiga detaljer om positionen.</div>
-<div class="scroll"><table><thead><tr><th></th><th>Position</th><th>Noterat</th><th>Ticker / ISIN</th><th>Tillgångsslag</th><th>Bransch</th><th>Geografi</th><th class="num">Antal</th><th class="num">Kurs</th><th class="num">Värde</th><th>Status</th><th class="num">Idag</th><th class="num">Sedan start</th></tr></thead><tbody id="tbody"></tbody></table></div></div></div>
+<div class="scroll"><table><thead><tr><th></th><th>Position</th><th class="num">Värde</th><th class="num">Andel</th><th class="num">Idag</th><th class="num">Sedan start</th><th class="num">Antal</th><th>Noterat</th><th>Ticker / ISIN</th><th>Tillgångsslag</th><th>Bransch</th><th>Geografi</th><th>Status</th></tr></thead><tbody id="tbody"></tbody></table></div></div></div>
 <div id="geography" class="section"><div class="card"><h2>Geografisk fördelning</h2>
 <div class="note">Fördelningen baseras på <strong>land</strong> i Excel. Klicka på ett land för att filtrera innehaven till just det landet.</div>
 <div id="geoFull"></div>
@@ -125,17 +125,17 @@ function render(){
     return `<tr class="${x.status==="cash"?"cashrow":""}">
       <td><button class="toggle" onclick="details(this,${data.groups.indexOf(x)})">›</button></td>
       <td><strong>${x.name}</strong></td>
+      <td class="num"><strong>${money(x.value)}</strong></td>
+      <td class="num">${data.total?new Intl.NumberFormat("sv-SE",{style:"percent",maximumFractionDigits:1}).format(x.value/data.total):"—"}</td>
+      <td class="num">${change}</td>
+      <td class="num">${gain}</td>
+      <td class="num">${x.qty==null?"—":num(x.qty)}</td>
       <td>${x.status==="cash"?'<span class="status manual">Kassa</span>':(x.children.some(c=>c.tax==="Noterad")?'<span class="status auto">Noterad</span>':'<span class="status manual">Onoterad</span>')}</td>
       <td>${linkText(x)}</td>
       <td>${x.assetTypes.join(", ")}</td>
       <td>${x.sectors.join(", ")}</td>
       <td>${x.geos.join(", ")}</td>
-      <td class="num">${x.qty==null?"—":num(x.qty)}</td>
-      <td class="num">${x.livePrice!=null?num(x.livePrice):"—"}</td>
-      <td class="num"><strong>${money(x.value)}</strong></td>
       <td>${statusHtml(x)}</td>
-      <td class="num">${change}</td>
-      <td class="num">${gain}</td>
     </tr>`;
   }).join("");
 }
