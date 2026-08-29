@@ -1,0 +1,17 @@
+{
+  "name": "Karlsarvet Capital AB",
+  "short_name": "Karlsarvet Capital",
+  "start_url": "/karlsarvet-capital/",
+  "display": "standalone",
+  "background_color": "#070b0f",
+  "theme_color": "#070b0f",
+  "description": "Portföljöversikt för Karlsarvet Capital AB",
+  "icons": [
+    {
+      "src": "karlsarvet-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
