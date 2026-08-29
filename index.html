@@ -187,7 +187,16 @@ function render(){
     const gain=x.gain!=null?money(x.gain):"—";
     return `<tr class="${x.status==="cash"?"cashrow":""}">
       <td><button class="toggle" type="button" data-detail-idx="${data.groups.indexOf(x)}" aria-label="Visa detaljer">›</button></td>
-      <td><strong>${x.name}</strong></td>
+      <td>
+        <button
+          type="button"
+          class="position-name-button"
+          data-detail-idx="${data.groups.indexOf(x)}"
+          title="Visa detaljer"
+          style="border:0;background:transparent;padding:0;text-align:left;font:inherit;color:inherit;cursor:pointer;font-weight:700;">
+          ${x.name}
+        </button>
+      </td>
       <td class="num"><strong>${money(x.value)}</strong></td>
       <td class="num">${data.total?new Intl.NumberFormat("sv-SE",{style:"percent",maximumFractionDigits:1}).format(x.value/data.total):"—"}</td>
       <td class="num">${change}</td>
@@ -206,6 +215,16 @@ function render(){
 function bindDetailButtons(){
   document.querySelectorAll("#tbody .toggle").forEach(btn=>{
     btn.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation(); details(btn, Number(btn.dataset.detailIdx)); };
+  });
+  document.querySelectorAll("#tbody .position-name-button").forEach(btn=>{
+    btn.onclick=(ev)=>{
+      ev.preventDefault();
+      ev.stopPropagation();
+      const idx=Number(btn.dataset.detailIdx);
+      const row=btn.closest("tr");
+      const toggle=row ? row.querySelector(".toggle") : null;
+      if(toggle) details(toggle, idx);
+    };
   });
 }
 function details(btn,idx){
