@@ -14,7 +14,7 @@ h1{margin:0}.muted{color:#9aa4af}.small{font-size:12px}.top{display:flex;justify
 .brand-logo{width:min(520px,72vw);height:auto;display:block;filter:drop-shadow(0 3px 18px rgba(190,145,75,.10))}
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 .card{background:linear-gradient(180deg,#111a22,#0d151c);border:1px solid #23303a;border-radius:15px;padding:17px;box-shadow:0 12px 28px rgba(0,0,0,.18)}
-.kpi{font-size:27px;font-weight:720;margin-top:7px;letter-spacing:-.02em}.cash{color:#d7ae70}.positive{color:#36c878}
+.kpi{font-size:27px;font-weight:720;margin-top:7px;letter-spacing:-.02em}.cash{color:#d7ae70}.positive{color:#36c878}.negative{color:#ff6b6b}
 .tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:0;margin:8px 0 16px;border:1px solid #2b3741;border-radius:13px;overflow:hidden;background:#0d151c}
 .tab{padding:14px 10px;border:0;border-right:1px solid #26323c;background:transparent;color:#d6dbe0;cursor:pointer;font:inherit;font-size:14px;font-weight:620}
 .tab:last-child{border-right:0}.tab.active{background:linear-gradient(180deg,#c59a54,#a77c39);color:#fff}
@@ -198,6 +198,25 @@ function linkText(x){
   if(x.status==="needs" && x.marketSymbol) return `<span class="ticker">${x.marketSymbol}</span>`;
   return `<span class="ticker">${x.ticker||"—"}</span>`;
 }
+function holdingSinceStartPct(x){
+  if(x.status==="cash") return null;
+  const hasShares=x.children.some(c=>c.asset==="Aktie");
+  const hasOther=x.children.some(c=>c.asset!=="Aktie");
+  if(hasShares&&hasOther){
+    const shareRows=x.children.filter(c=>c.asset==="Aktie");
+    const invested=shareRows.reduce((sum,c)=>sum+Number(c.invested||0),0);
+    const value=shareRows.reduce((sum,c)=>sum+Number(c.value||0),0);
+    return invested?(value-invested)/invested:null;
+  }
+  const invested=Number(x.invested||0);
+  return invested?(Number(x.value||0)-invested)/invested:null;
+}
+function holdingPctHtml(x){
+  const pct=holdingSinceStartPct(x);
+  if(pct==null||!Number.isFinite(pct)) return "—";
+  const formatted=new Intl.NumberFormat("sv-SE",{style:"percent",minimumFractionDigits:1,maximumFractionDigits:1}).format(pct);
+  return '<span class="'+(pct>=0?'positive':'negative')+'">'+(pct>0?'+':'')+formatted+'</span>';
+}
 function render(){
   let q=document.getElementById("search").value.toLowerCase(),sf=document.getElementById("sectorFilter").value,af=document.getElementById("assetFilter").value,lf=document.getElementById("listingFilter").value,st=document.getElementById("statusFilter").value,cf=window._countryFilter||"";
   let rr=data.groups.filter(x=>
@@ -208,7 +227,7 @@ function render(){
   ).sort((a,b)=>b.value-a.value);
   document.getElementById("tbody").innerHTML=rr.map(x=>{
     const change=x.dayChange!=null?money(x.dayChange):"—";
-    const gain=x.gain!=null?money(x.gain):"—";
+    const gain=holdingPctHtml(x);
     return `<tr class="${x.status==="cash"?"cashrow":""}">
       <td><button class="toggle" type="button" data-detail-idx="${data.groups.indexOf(x)}" aria-label="Visa detaljer">+</button></td>
       <td>
@@ -364,5 +383,5 @@ document.getElementById("holdingsKpi").textContent=money(data.holdings);
 document.getElementById("fxSummary").textContent="Laddar aktuella valutakurser…";
 updatePeriodKPIs(loadHistory());
 render();
-</script><div class="small muted" style="margin-top:14px">Version 33 · Portföljdata från senaste Excelunderlag. Kassa summeras separat från raderna 151–175. Verifierade marknadskurser hämtas via Karlsarvet Market Data / EODHD.</div><div class="mobile-only" style="display:none;margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.04);font-size:13px;">Tips: tryck på ett innehav för att se detaljer.</div>
+</script><div class="small muted" style="margin-top:14px">Version 34 · Portföljdata från senaste Excelunderlag. Kassa summeras separat från raderna 151–175. Verifierade marknadskurser hämtas via Karlsarvet Market Data / EODHD.</div><div class="mobile-only" style="display:none;margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.04);font-size:13px;">Tips: tryck på ett innehav för att se detaljer.</div>
 </body></html>
