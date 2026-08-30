@@ -91,7 +91,7 @@ th.listed-col, td.listed-col,
 th.isin-col, td.isin-col,
 th.ticker-col, td.ticker-col { display:none !important; }
 
-.breakdown-back{display:inline-flex;align-items:center;gap:7px;border:1px solid #334454;background:#18232d;color:#fff;border-radius:10px;padding:9px 13px;font-weight:700;cursor:pointer;margin-bottom:12px}.breakdown-back:hover{border-color:#5aa7ff}.breakdown-title{margin:2px 0 12px}.breakdown-list{display:grid;gap:8px}.breakdown-item{display:grid;grid-template-columns:minmax(170px,1fr) auto auto auto;gap:12px;align-items:center;padding:11px 12px;border-radius:10px;background:rgba(255,255,255,.035);border:1px solid rgba(154,167,179,.18)}.breakdown-item-name{font-weight:700}.breakdown-item-value,.breakdown-item-share,.breakdown-item-return{text-align:right;white-space:nowrap}@media(max-width:650px){.breakdown-item{grid-template-columns:1fr auto;gap:5px 10px}.breakdown-item-share,.breakdown-item-return{font-size:12px;color:#9aa7b3;text-align:left}.breakdown-item-return{text-align:right}}.holding-info{margin-top:10px;padding:12px;border-radius:10px;background:rgba(90,167,255,.09);border:1px solid rgba(90,167,255,.22);line-height:1.45}.holding-info-item+.holding-info-item{margin-top:9px;padding-top:9px;border-top:1px solid rgba(154,167,179,.22)}.position-name-button{
+.kpi-link{cursor:pointer;border-radius:8px;transition:background .18s ease,outline .18s ease}.kpi-link:hover,.kpi-link:focus-visible{background:rgba(90,167,255,.10);outline:2px solid rgba(90,167,255,.55);outline-offset:3px}.sort-note{display:none;margin:0 0 10px;padding:9px 11px;border-radius:9px;background:rgba(90,167,255,.09);border:1px solid rgba(90,167,255,.22)}.sort-note.active{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.sort-note button{border:1px solid #334454;background:#18232d;color:#fff;border-radius:8px;padding:6px 9px;cursor:pointer}.breakdown-back{display:inline-flex;align-items:center;gap:7px;border:1px solid #334454;background:#18232d;color:#fff;border-radius:10px;padding:9px 13px;font-weight:700;cursor:pointer;margin-bottom:12px}.breakdown-back:hover{border-color:#5aa7ff}.breakdown-title{margin:2px 0 12px}.breakdown-list{display:grid;gap:8px}.breakdown-item{display:grid;grid-template-columns:minmax(170px,1fr) auto auto auto;gap:12px;align-items:center;padding:11px 12px;border-radius:10px;background:rgba(255,255,255,.035);border:1px solid rgba(154,167,179,.18)}.breakdown-item-name{font-weight:700}.breakdown-item-value,.breakdown-item-share,.breakdown-item-return{text-align:right;white-space:nowrap}@media(max-width:650px){.breakdown-item{grid-template-columns:1fr auto;gap:5px 10px}.breakdown-item-share,.breakdown-item-return{font-size:12px;color:#9aa7b3;text-align:left}.breakdown-item-return{text-align:right}}.holding-info{margin-top:10px;padding:12px;border-radius:10px;background:rgba(90,167,255,.09);border:1px solid rgba(90,167,255,.22);line-height:1.45}.holding-info-item+.holding-info-item{margin-top:9px;padding-top:9px;border-top:1px solid rgba(154,167,179,.22)}.position-name-button{
   font-weight:700;
 }
 
@@ -127,7 +127,7 @@ th.ticker-col, td.ticker-col { display:none !important; }
 <div id="top10" class="section"><div class="card"><h2>10 största innehaven</h2><div class="bars" id="topBars"></div></div></div>
 <div id="holdings" class="section active"><div class="card"><h2>Innehav</h2>
 <div class="toolbar"><input id="search" placeholder="Sök position eller ticker/ISIN"><select id="sectorFilter"><option value="">Alla branscher</option></select><select id="assetFilter"><option value="">Alla tillgångsslag</option></select><select id="listingFilter"><option value="">Noterat + onoterat</option><option value="listed">Noterat</option><option value="unlisted">Onoterat</option><option value="cash">Kassa</option></select><select id="statusFilter"><option value="">Alla</option><option value="auto">Automatiska</option><option value="manual">Manuella</option><option value="needs">Behöver koppling</option></select><button id="clearCountry" class="tab" type="button">Rensa land</button><button id="refreshLive" class="tab" type="button">↻ Uppdatera kurser</button></div><div id="liveStatus" class="note">⏸️ Kurser och FX uppdateras endast när du trycker på <strong>↻ Uppdatera kurser</strong>.</div>
-<div class="small muted" style="margin-bottom:10px">Klicka på <strong>＋</strong> för fullständiga detaljer om positionen.</div>
+<div class="small muted" style="margin-bottom:10px">Klicka på <strong>＋</strong> för fullständiga detaljer om positionen.</div><div id="holdingSortNote" class="sort-note"></div>
 <div class="scroll"><table><thead><tr><th></th><th>Namn</th><th class="num">Värde</th><th class="num">Andel</th><th class="num">Idag</th><th class="num">Sedan start</th><th>Tillgångsslag</th><th>Bransch</th><th>Geografi</th><th>Status</th></tr></thead><tbody id="tbody"></tbody></table></div></div></div>
 <div id="admin" class="section"><div class="card"><h2>⚙ Admin</h2><div class="note">Administrationsvy för Karlsarvet Capital AB. Här hanteras transaktioner och kapitalflöden. Ingen information i denna vy påverkar den publika portföljdesignen.</div><div class="card" style="margin:14px 0 16px;background:rgba(255,255,255,.025)"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h3 style="margin:0">🔄 Transaktioner & kapitalflöden</h3><div class="small muted">Köp och försäljningar påverkar innehaven men räknas inte som externa kapitalflöden. Insättningar/uttag rensas bort från TWR.</div></div><div class="small" id="flowSummary">Netto kapitalflöde: 0 kr</div></div>
 <div style="display:grid;grid-template-columns:130px 170px 1fr 130px 130px 1fr auto;gap:8px;margin-top:12px;align-items:center">
@@ -242,6 +242,15 @@ function holdingPctHtml(x){
   const formatted=new Intl.NumberFormat("sv-SE",{style:"percent",minimumFractionDigits:1,maximumFractionDigits:1}).format(pct);
   return '<span class="'+(pct>=0?'positive':'negative')+'">'+(pct>0?'+':'')+formatted+'</span>';
 }
+function resetHoldingSort(){window._holdingSort="value";render();}
+function clearHoldingFilters(){
+  document.getElementById("search").value="";document.getElementById("sectorFilter").value="";document.getElementById("assetFilter").value="";document.getElementById("listingFilter").value="";document.getElementById("statusFilter").value="";window._countryFilter="";
+}
+function openHoldingsView(sortMode="value"){
+  clearHoldingFilters();window._holdingSort=sortMode;
+  document.querySelector('[data-tab="holdings"]').click();render();
+  document.getElementById("holdings").scrollIntoView({behavior:"smooth",block:"start"});
+}
 function render(){
   let q=document.getElementById("search").value.toLowerCase(),sf=document.getElementById("sectorFilter").value,af=document.getElementById("assetFilter").value,lf=document.getElementById("listingFilter").value,st=document.getElementById("statusFilter").value,cf=window._countryFilter||"";
   let rr=data.groups.filter(x=>
@@ -249,7 +258,17 @@ function render(){
     (!sf||x.sectors.includes(sf)) && (!af||x.assetTypes.includes(af)) && (!st||x.status===st) &&
     (!lf||(lf==="cash"?x.status==="cash":lf==="listed"?x.status!=="cash"&&x.children.some(c=>c.tax==="Noterad"):x.status!=="cash"&&!x.children.some(c=>c.tax==="Noterad"))) &&
     (!cf||x.geos.includes(cf))
-  ).sort((a,b)=>b.value-a.value);
+  );
+  if(window._holdingSort==="day") rr.sort((a,b)=>Math.abs(Number(b.dayChange||0))-Math.abs(Number(a.dayChange||0)));
+  else rr.sort((a,b)=>b.value-a.value);
+  const sortNote=document.getElementById("holdingSortNote");
+  if(sortNote){
+    if(window._holdingSort==="day"){
+      const hasDay=rr.some(x=>x.dayChange!=null);
+      sortNote.className="sort-note active";
+      sortNote.innerHTML='<span>'+(hasDay?'Sorterad efter störst bidrag till dagens värdeförändring.':'Dagens bidrag visas efter att kurserna har uppdaterats.')+'</span><button type="button" onclick="resetHoldingSort()">Visa efter värde</button>';
+    }else{sortNote.className="sort-note";sortNote.innerHTML="";}
+  }
   document.getElementById("tbody").innerHTML=rr.map(x=>{
     const change=x.dayChange!=null?money(x.dayChange):"—";
     const gain=holdingPctHtml(x);
@@ -384,6 +403,8 @@ async function refreshLive(){
   }catch(e){document.getElementById("liveStatus").textContent="⚠️ Kurs/FX-uppdateringen kunde inte genomföras: "+e.message;}
 }
 document.getElementById("refreshLive").addEventListener("click",refreshLive);
+[total,document.getElementById("holdingsKpi")].forEach(el=>{if(el){el.classList.add("kpi-link");el.setAttribute("role","button");el.setAttribute("tabindex","0");el.setAttribute("aria-label","Visa innehaven");el.addEventListener("click",()=>openHoldingsView("value"));el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openHoldingsView("value");}});}});
+day.classList.add("kpi-link");day.setAttribute("role","button");day.setAttribute("tabindex","0");day.setAttribute("aria-label","Visa innehav sorterade efter dagens förändring");day.addEventListener("click",()=>openHoldingsView("day"));day.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openHoldingsView("day");}});
 document.getElementById("addTx").addEventListener("click",addTransaction);
 document.getElementById("txDate").value=new Date().toISOString().slice(0,10);
 document.getElementById("clearCountry").addEventListener("click",()=>{window._countryFilter="";render()});
@@ -403,5 +424,5 @@ document.getElementById("holdingsKpi").textContent=money(data.holdings);
 document.getElementById("fxSummary").textContent="Laddar aktuella valutakurser…";
 updatePeriodKPIs(loadHistory());
 render();
-</script><div class="small muted" style="margin-top:14px">Version 36 · Portföljdata från senaste Excelunderlag. Kassa summeras separat från raderna 151–175. Verifierade marknadskurser hämtas via Karlsarvet Market Data / EODHD.</div><div class="mobile-only" style="display:none;margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.04);font-size:13px;">Tips: tryck på ett innehav för att se detaljer.</div>
+</script><div class="small muted" style="margin-top:14px">Version 37 · Portföljdata från senaste Excelunderlag. Kassa summeras separat från raderna 151–175. Verifierade marknadskurser hämtas via Karlsarvet Market Data / EODHD.</div><div class="mobile-only" style="display:none;margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.04);font-size:13px;">Tips: tryck på ett innehav för att se detaljer.</div>
 </body></html>
