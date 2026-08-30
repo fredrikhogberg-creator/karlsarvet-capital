@@ -91,7 +91,7 @@ th.listed-col, td.listed-col,
 th.isin-col, td.isin-col,
 th.ticker-col, td.ticker-col { display:none !important; }
 
-.holding-info{margin-top:10px;padding:12px;border-radius:10px;background:rgba(90,167,255,.09);border:1px solid rgba(90,167,255,.22);line-height:1.45}.holding-info-item+.holding-info-item{margin-top:9px;padding-top:9px;border-top:1px solid rgba(154,167,179,.22)}.position-name-button{
+.breakdown-back{display:inline-flex;align-items:center;gap:7px;border:1px solid #334454;background:#18232d;color:#fff;border-radius:10px;padding:9px 13px;font-weight:700;cursor:pointer;margin-bottom:12px}.breakdown-back:hover{border-color:#5aa7ff}.breakdown-title{margin:2px 0 12px}.breakdown-list{display:grid;gap:8px}.breakdown-item{display:grid;grid-template-columns:minmax(170px,1fr) auto auto auto;gap:12px;align-items:center;padding:11px 12px;border-radius:10px;background:rgba(255,255,255,.035);border:1px solid rgba(154,167,179,.18)}.breakdown-item-name{font-weight:700}.breakdown-item-value,.breakdown-item-share,.breakdown-item-return{text-align:right;white-space:nowrap}@media(max-width:650px){.breakdown-item{grid-template-columns:1fr auto;gap:5px 10px}.breakdown-item-share,.breakdown-item-return{font-size:12px;color:#9aa7b3;text-align:left}.breakdown-item-return{text-align:right}}.holding-info{margin-top:10px;padding:12px;border-radius:10px;background:rgba(90,167,255,.09);border:1px solid rgba(90,167,255,.22);line-height:1.45}.holding-info-item+.holding-info-item{margin-top:9px;padding-top:9px;border-top:1px solid rgba(154,167,179,.22)}.position-name-button{
   font-weight:700;
 }
 
@@ -176,11 +176,36 @@ function listingAggregate(){
   });
   return [["Noterat",listed],["Onoterat",unlisted],["Kassa",data.cash]];
 }
-function bars(el,arr){
-  document.getElementById(el).innerHTML=arr.map(([k,v])=>`<div class="barrow"><span>${k}</span><div class="bar"><div class="fill" style="width:${Math.max(1,100*v/data.total)}%"></div></div><strong>${money(v)}</strong></div>`).join("");
+function bars(el,arr,kind=""){
+  document.getElementById(el).innerHTML=arr.map(([k,v])=>`<div class="barrow ${kind?"clickable":""}" ${kind?`data-breakdown-kind="${kind}" data-breakdown-key="${encodeURIComponent(k)}"`:""}><span>${k}</span><div class="bar"><div class="fill" style="width:${Math.max(1,100*v/data.total)}%"></div></div><strong>${money(v)}</strong></div>`).join("");
 }
 bars("sectorSummary",sectors.slice(0,7)); bars("assetSummary",assets.slice(0,7)); bars("listingSummary",listingAggregate());
-bars("sectorFull",sectors); bars("assetFull",assets); bars("listingFull",listingAggregate()); bars("geoFull",countries);
+
+const breakdownContainers={top:"topBars",asset:"assetFull",sector:"sectorFull",geo:"geoFull",listing:"listingFull"};
+function groupsForBreakdown(kind,key){
+  if(kind==="top") return data.groups.filter(g=>g.name===key);
+  if(kind==="asset") return data.groups.filter(g=>g.assetTypes.includes(key));
+  if(kind==="sector") return data.groups.filter(g=>g.sectors.includes(key));
+  if(kind==="geo") return data.groups.filter(g=>g.geos.includes(key));
+  if(kind==="listing") return data.groups.filter(g=>key==="Kassa"?g.status==="cash":key==="Noterat"?g.status!=="cash"&&g.children.some(c=>c.tax==="Noterad"):g.status!=="cash"&&!g.children.some(c=>c.tax==="Noterad"));
+  return [];
+}
+function bindBreakdownClicks(){
+  document.querySelectorAll("[data-breakdown-kind]").forEach(el=>el.onclick=()=>openBreakdown(el.dataset.breakdownKind,decodeURIComponent(el.dataset.breakdownKey)));
+}
+function openBreakdown(kind,key){
+  const container=document.getElementById(breakdownContainers[kind]);
+  const groups=groupsForBreakdown(kind,key).slice().sort((a,b)=>b.value-a.value);
+  container.innerHTML=`<button class="breakdown-back" type="button" aria-label="Tillbaka till fördelningen">← Tillbaka</button><h3 class="breakdown-title">${key}</h3><div class="small muted" style="margin-bottom:10px">${groups.length} innehav</div><div class="breakdown-list">${groups.map(g=>`<div class="breakdown-item"><div class="breakdown-item-name">${g.name}</div><div class="breakdown-item-value"><strong>${money(g.value)}</strong></div><div class="breakdown-item-share">${new Intl.NumberFormat("sv-SE",{style:"percent",maximumFractionDigits:1}).format(g.value/data.total)} av portföljen</div><div class="breakdown-item-return">${holdingPctHtml(g)}</div></div>`).join("")}</div>`;
+  container.querySelector(".breakdown-back").onclick=renderBreakdowns;
+}
+function renderBreakdowns(){
+  const top=data.groups.filter(g=>g.status!=="cash").slice().sort((a,b)=>b.value-a.value).slice(0,10).map(g=>[g.name,g.value]);
+  bars("topBars",top,"top");
+  document.getElementById("topBars").insertAdjacentHTML("afterbegin",`<div class="small muted" style="margin-bottom:12px">Topp 10 baseras på investeringsinnehav och exkluderar Kassa.</div>`);
+  bars("sectorFull",sectors,"sector"); bars("assetFull",assets,"asset"); bars("listingFull",listingAggregate(),"listing"); bars("geoFull",countries,"geo");
+  bindBreakdownClicks();
+}
 
 const verified=data.groups.filter(g=>g.status==="auto"&&g.marketSymbol&&g.qty!=null);
 const needs=data.groups.filter(g=>g.status==="needs");
@@ -372,17 +397,11 @@ document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
 [...new Set(data.groups.flatMap(g=>g.sectors))].sort().forEach(v=>document.getElementById("sectorFilter").add(new Option(v,v)));
 [...new Set(data.groups.flatMap(g=>g.assetTypes))].sort().forEach(v=>document.getElementById("assetFilter").add(new Option(v,v)));
 
-bars("topBars",data.groups.filter(g=>g.status!=="cash").slice().sort((a,b)=>b.value-a.value).slice(0,10).map(g=>[g.name,g.value]));
-document.getElementById("topBars").insertAdjacentHTML("afterbegin",`<div class="small muted" style="margin-bottom:12px">Topp 10 baseras på investeringsinnehav och exkluderar Kassa.</div>`);
-
-document.getElementById("geoFull").querySelectorAll(".barrow").forEach((el,i)=>{
-  el.classList.add("clickable");
-  el.onclick=()=>{window._countryFilter=countries[i][0];document.querySelector('[data-tab="holdings"]').click();render();}
-});
+renderBreakdowns();
 
 document.getElementById("holdingsKpi").textContent=money(data.holdings);
 document.getElementById("fxSummary").textContent="Laddar aktuella valutakurser…";
 updatePeriodKPIs(loadHistory());
 render();
-</script><div class="small muted" style="margin-top:14px">Version 35 · Portföljdata från senaste Excelunderlag. Kassa summeras separat från raderna 151–175. Verifierade marknadskurser hämtas via Karlsarvet Market Data / EODHD.</div><div class="mobile-only" style="display:none;margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.04);font-size:13px;">Tips: tryck på ett innehav för att se detaljer.</div>
+</script><div class="small muted" style="margin-top:14px">Version 36 · Portföljdata från senaste Excelunderlag. Kassa summeras separat från raderna 151–175. Verifierade marknadskurser hämtas via Karlsarvet Market Data / EODHD.</div><div class="mobile-only" style="display:none;margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.04);font-size:13px;">Tips: tryck på ett innehav för att se detaljer.</div>
 </body></html>
