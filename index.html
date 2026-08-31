@@ -134,7 +134,7 @@ th.ticker-col, td.ticker-col { display:none !important; }
 <input id="txDate" type="date"><select id="txType"><option value="buy">Köp</option><option value="sell">Sälj</option><option value="deposit">Insättning</option><option value="withdrawal">Uttag</option><option value="dividend">Utdelning</option></select><input id="txName" placeholder="Innehav / kommentar"><input id="txAmount" type="number" step="0.01" placeholder="Belopp SEK"><input id="txQty" type="number" step="0.0001" placeholder="Antal"><input id="txNote" placeholder="Kommentar"><button id="addTx" class="tab" type="button">+ Lägg till</button></div>
 <div class="small muted" style="margin-top:8px">Belopp anges i SEK. För köp/sälj är beloppet affärens storlek; för insättning/uttag används beloppet som externt kapitalflöde. Utdelning behandlas som avkastning.</div>
 <div id="txList" style="margin-top:12px"></div></div>
-<div class="grid" style="margin-top:14px"><div class="card"><h3 style="margin-top:0">Portföljkontroll</h3><div class="small muted">Startvärde</div><div class="kpi" id="adminStartValue">992,0 Mkr</div><div class="small muted" style="margin-top:8px">Baseras på aktuell startpunkt för TWR-historiken.</div></div><div class="card"><h3 style="margin-top:0">Valutor</h3><div id="adminFx" class="small">Se aktuella FX-kurser ovan.</div></div></div><div class="small muted" id="adminVersion" style="margin-top:16px;text-align:right;opacity:.7;font-size:11px">Appversion 40</div></div></div><div id="geography" class="section"><div class="card"><h2>Geografisk fördelning</h2>
+<div class="grid" style="margin-top:14px"><div class="card"><h3 style="margin-top:0">Portföljkontroll</h3><div class="small muted">Startvärde</div><div class="kpi" id="adminStartValue">992,0 Mkr</div><div class="small muted" style="margin-top:8px">Baseras på aktuell startpunkt för TWR-historiken.</div></div><div class="card"><h3 style="margin-top:0">Valutor</h3><div id="adminFx" class="small">Se aktuella FX-kurser ovan.</div></div></div><div class="small muted" id="adminVersion" style="margin-top:16px;text-align:right;opacity:.7;font-size:11px">Appversion 41</div></div></div><div id="geography" class="section"><div class="card"><h2>Geografisk fördelning</h2>
 <div class="note">Fördelningen baseras på <strong>land</strong> i Excel. Klicka på ett land för att filtrera innehaven till just det landet.</div>
 <div id="geoFull"></div>
 <div id="geoDetail" style="margin-top:16px"></div>
@@ -334,7 +334,7 @@ function details(btn,idx){
 }
 
 
-const HISTORY_KEY="karlsarvet_capital_history_v2";
+const HISTORY_KEY="karlsarvet_capital_history_v3";
 const TX_KEY="karlsarvet_capital_transactions_v1";
 const BASE_VALUE=992025260.33158;
 function loadHistory(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");}catch(e){return []}}
@@ -396,10 +396,11 @@ async function refreshLive(){
     data.holdings=data.groups.filter(g=>g.status!=="cash").reduce((s,g)=>s+Number(g.value||0),0); data.total=data.holdings+data.cash;
     document.getElementById("total").textContent=money(data.total); document.getElementById("holdingsKpi").textContent=money(data.holdings); document.getElementById("cash").textContent=money(data.cash);
     const fxRows=['EUR','USD','NOK','DKK'].map(c=>`<span style="display:inline-block;margin-right:18px"><strong>${c}/SEK</strong> ${fxRates[c]?fxRates[c].toFixed(4):'—'}</span>`).join(''); document.getElementById('fxSummary').innerHTML=fxRows;
-    if(updated===verified.length){day.textContent=(totalDay>=0?'+':'')+money(totalDay); day.className='kpi '+(totalDay>=0?'positive':'');} else {day.textContent='—'; day.className='kpi';}
+    saveHistoryPoint();
+    if(updated===verified.length){const priorTotal=Number(data.total)-Number(totalDay);const dayPct=priorTotal?Number(totalDay)/priorTotal:null;day.textContent=dayPct==null?'—':(dayPct>=0?'+':'')+new Intl.NumberFormat("sv-SE",{style:"percent",minimumFractionDigits:2,maximumFractionDigits:2}).format(dayPct);day.className='kpi kpi-link '+(dayPct!=null&&dayPct>=0?'positive':'negative');} else {day.textContent='—'; day.className='kpi kpi-link';}
     const fxOk=["EUR","USD","NOK","DKK"].every(k=>Number.isFinite(fxRates[k])&&fxRates[k]>0);
     document.getElementById("liveStatus").innerHTML=`🔵 <strong>${updated} av ${verified.length}</strong> verifierade positioner uppdaterade. ${fxOk?"💱 FX uppdaterad.":"⚠️ FX saknas – kontrollera Cloudflare Worker v4."} 🟡 ${needsCount} positioner väntar. Kassa <strong>${money(data.cash)}</strong> separat.`;
-    saveHistoryPoint(); render();
+    render();
   }catch(e){const m=String(e&&e.message||e||"Okänt fel");const explanation=m.includes("402")?"Kursleverantören EODHD avvisar anropet (402). Kontrollera abonnemanget och API-nyckeln i Cloudflare Worker.":m.includes("Failed to fetch")?"Kursservern kunde inte nås från den här webbadressen. Kontrollera publiceringsadress och CORS-inställning.":m;document.getElementById("liveStatus").textContent="⚠️ Kurs/FX-uppdateringen kunde inte genomföras: "+explanation;}
 }
 document.getElementById("refreshLive").addEventListener("click",refreshLive);
