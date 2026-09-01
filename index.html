@@ -40,7 +40,7 @@ h2{font-size:18px;margin:0 0 14px;color:#e9ecef}h3{font-size:13px;color:#c6cdd3;
 .access-panel h1{margin:0 0 8px;font-size:24px}.access-panel p{color:#aeb8c1;margin:0 0 20px}.access-panel input{width:100%;box-sizing:border-box;padding:14px;border:1px solid #3c4853;border-radius:10px;background:#070b0f;color:#fff;font-size:18px;text-align:center;letter-spacing:.18em}.access-panel button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:10px;background:#cda75a;color:#071015;font-weight:700;cursor:pointer}.access-error{min-height:20px;margin-top:10px;color:#ff8d8d;font-size:13px}body.locked{overflow:hidden}
 
 .position-name-content{display:inline-flex;align-items:center;gap:8px;max-width:100%;vertical-align:middle}.company-logo{width:24px;height:24px;flex:0 0 24px;border-radius:7px;object-fit:contain;background:#fff;padding:2px;box-sizing:border-box;box-shadow:0 0 0 1px rgba(154,167,179,.28)}.company-logo-fallback{display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#243848,#17242e);color:#cda75a;font-size:9px;font-weight:800;letter-spacing:.02em}.company-name-text{min-width:0}@media(max-width:760px){.company-logo{width:22px;height:22px;flex-basis:22px;border-radius:6px}.position-name-content{gap:6px}}
-.kpi-desktop-spacer{display:block}@media(max-width:1050px){.kpi-desktop-spacer{display:none}}
+.credit-card{display:flex;flex-direction:column;justify-content:center}.credit-line{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid #26323c}.credit-line span{color:#9aa7b3;font-size:13px}.credit-line strong{font-size:18px;white-space:nowrap;color:#e9f1f7}
 </style><link rel="manifest" href="manifest.webmanifest">
 <style id="karlsarvet-mobile-v26">
 /* Mobile-first refinements: desktop layout remains intact above 760px */
@@ -117,7 +117,7 @@ th.ticker-col, td.ticker-col { display:none !important; }
 <div class="card"><div class="muted">Totalt portföljvärde</div><div class="kpi" id="total"></div></div>
 <div class="card"><div class="muted">Innehav</div><div class="kpi" id="holdingsKpi"></div></div>
 <div class="card"><div class="muted">Kassa</div><div class="kpi cash" id="cash"></div></div>
-<div class="kpi-desktop-spacer" aria-hidden="true"></div>
+<div class="card credit-card"><div class="muted">Checkkredit SHB</div><div class="credit-line"><span>Beviljad kredit</span><strong>72 mkr</strong></div><div class="credit-line"><span>Nyttjad kredit</span><strong>0 mkr</strong></div></div>
 <div class="card"><div class="muted">Idag</div><div class="kpi positive" id="day">—</div><div class="small muted">TWR när transaktioner är registrerade</div></div>
 <div class="card"><div class="muted">MTD</div><div class="kpi positive" id="mtd">—</div><div class="small muted">Bas 2026-08-31 · 989,1 Mkr</div></div>
 <div class="card"><div class="muted">YTD</div><div class="kpi positive" id="ytd">—</div><div class="small muted">Bas 2025-12-31 · 994,3 Mkr</div></div>
@@ -141,7 +141,7 @@ th.ticker-col, td.ticker-col { display:none !important; }
 <input id="txDate" type="date"><select id="txType"><option value="buy">Köp</option><option value="sell">Sälj</option><option value="deposit">Insättning</option><option value="withdrawal">Uttag</option><option value="dividend">Utdelning</option></select><input id="txName" placeholder="Innehav / kommentar"><input id="txAmount" type="number" step="0.01" placeholder="Belopp SEK"><input id="txQty" type="number" step="0.0001" placeholder="Antal"><input id="txNote" placeholder="Kommentar"><button id="addTx" class="tab" type="button">+ Lägg till</button></div>
 <div class="small muted" style="margin-top:8px">Belopp anges i SEK. För köp/sälj är beloppet affärens storlek; för insättning/uttag används beloppet som externt kapitalflöde. Utdelning behandlas som avkastning.</div>
 <div id="txList" style="margin-top:12px"></div></div>
-<div class="grid" style="margin-top:14px"><div class="card"><h3 style="margin-top:0">Portföljkontroll</h3><div class="small muted">Startvärde</div><div class="kpi" id="adminStartValue">992,0 Mkr</div><div class="small muted" style="margin-top:8px">Baseras på aktuell startpunkt för TWR-historiken.</div></div><div class="card"><h3 style="margin-top:0">Valutor</h3><div id="adminFx" class="small">Se aktuella FX-kurser ovan.</div></div></div><div class="small muted" id="adminVersion" style="margin-top:16px;text-align:right;opacity:.7;font-size:11px">Appversion 49</div></div></div><div id="geography" class="section"><div class="card"><h2>Geografisk fördelning</h2>
+<div class="grid" style="margin-top:14px"><div class="card"><h3 style="margin-top:0">Portföljkontroll</h3><div class="small muted">Startvärde</div><div class="kpi" id="adminStartValue">992,0 Mkr</div><div class="small muted" style="margin-top:8px">Baseras på aktuell startpunkt för TWR-historiken.</div></div><div class="card"><h3 style="margin-top:0">Valutor</h3><div id="adminFx" class="small">Se aktuella FX-kurser ovan.</div></div></div><div class="small muted" id="adminVersion" style="margin-top:16px;text-align:right;opacity:.7;font-size:11px">Appversion 50</div></div></div><div id="geography" class="section"><div class="card"><h2>Geografisk fördelning</h2>
 <div class="note">Fördelningen baseras på <strong>land</strong> i Excel. Klicka på ett land för att filtrera innehaven till just det landet.</div>
 <div id="geoFull"></div>
 <div id="geoDetail" style="margin-top:16px"></div>
@@ -186,7 +186,7 @@ const money=n=>new Intl.NumberFormat("sv-SE",{style:"currency",currency:"SEK",ma
 const pct=n=>new Intl.NumberFormat("sv-SE",{style:"percent",maximumFractionDigits:1}).format((Number(n)||0)/data.total);
 const num=n=>new Intl.NumberFormat("sv-SE",{maximumFractionDigits:2}).format(Number(n)||0);
 const total=document.getElementById("total"), cash=document.getElementById("cash"), day=document.getElementById("day"), since=document.getElementById("since");
-total.textContent=money(data.total); cash.textContent=money(data.cash); day.textContent="—"; since.textContent="—";
+total.textContent=money(data.total); cash.textContent=money(data.cash); day.textContent="—"; if(since)since.textContent="—";
 
 function aggregateChildren(field){
   const d={};
