@@ -120,7 +120,7 @@ th.ticker-col, td.ticker-col { display:none !important; }
 <div class="card"><div class="muted">Innehav</div><div class="kpi" id="holdingsKpi"></div></div>
 <div class="card"><div class="muted">Kassa</div><div class="kpi cash" id="cash"></div></div>
 <div class="card credit-card"><div class="muted">Checkkredit SHB</div><div class="credit-line"><span>Beviljad kredit</span><strong>72 mkr</strong></div><div class="credit-line"><span>Nyttjad kredit</span><strong>0 mkr</strong></div></div>
-<div class="card"><div class="muted">Idag</div><div class="kpi positive" id="day">—</div><div class="small muted">TWR när transaktioner är registrerade</div></div>
+<div class="card"><div class="muted">Idag</div><div class="kpi positive" id="day">—</div><div class="small muted">Summa av dagens kursförändringar</div></div>
 <div class="card"><div class="muted">MTD</div><div class="kpi positive" id="mtd">—</div><div class="small muted">Bas 2026-08-31 · 1 018,6 Mkr</div></div>
 <div class="card"><div class="muted">YTD</div><div class="kpi positive" id="ytd">—</div><div class="small muted">Bas 2025-12-31 · 994,3 Mkr</div></div>
 <div class="card owner-funds-card"><div class="credit-line"><span class="muted">Inlånade medel ägare</span><strong>10,4 mkr</strong></div><div class="credit-line"><span>K10 utrymme (per 251231)</span><strong>1,974 mdr</strong></div></div>
@@ -149,7 +149,7 @@ th.ticker-col, td.ticker-col { display:none !important; }
 <input id="txDate" type="date"><select id="txType"><option value="buy">Köp</option><option value="sell">Sälj</option><option value="deposit">Insättning</option><option value="withdrawal">Uttag</option><option value="dividend">Utdelning</option></select><input id="txName" placeholder="Innehav / kommentar"><input id="txAmount" type="number" step="0.01" placeholder="Belopp SEK"><input id="txQty" type="number" step="0.0001" placeholder="Antal"><input id="txNote" placeholder="Kommentar"><button id="addTx" class="tab" type="button">+ Lägg till</button></div>
 <div class="small muted" style="margin-top:8px">Belopp anges i SEK. För köp/sälj är beloppet affärens storlek; för insättning/uttag används beloppet som externt kapitalflöde. Utdelning behandlas som avkastning.</div>
 <div id="txList" style="margin-top:12px"></div></div>
-<div class="grid" style="margin-top:14px"><div class="card"><h3 style="margin-top:0">Portföljkontroll</h3><div class="small muted">Startvärde</div><div class="kpi" id="adminStartValue">992,0 Mkr</div><div class="small muted" style="margin-top:8px">Baseras på aktuell startpunkt för TWR-historiken.</div></div><div class="card"><h3 style="margin-top:0">Valutor</h3><div id="adminFx" class="small">Se aktuella FX-kurser ovan.</div></div></div><div class="small muted" id="adminVersion" style="margin-top:16px;text-align:right;opacity:.7;font-size:11px">Appversion 59</div></div></div><div id="geography" class="section"><div class="card"><h2>Geografisk fördelning</h2>
+<div class="grid" style="margin-top:14px"><div class="card"><h3 style="margin-top:0">Portföljkontroll</h3><div class="small muted">Startvärde</div><div class="kpi" id="adminStartValue">992,0 Mkr</div><div class="small muted" style="margin-top:8px">Baseras på aktuell startpunkt för TWR-historiken.</div></div><div class="card"><h3 style="margin-top:0">Valutor</h3><div id="adminFx" class="small">Se aktuella FX-kurser ovan.</div></div></div><div class="small muted" id="adminVersion" style="margin-top:16px;text-align:right;opacity:.7;font-size:11px">Appversion 60</div></div></div><div id="geography" class="section"><div class="card"><h2>Geografisk fördelning</h2>
 <div class="note">Fördelningen baseras på <strong>land</strong> i Excel. Klicka på ett land för att filtrera innehaven till just det landet.</div>
 <div id="geoFull"></div>
 <div id="geoDetail" style="margin-top:16px"></div>
@@ -258,6 +258,21 @@ const verified=data.groups.filter(g=>g.status==="auto"&&g.marketSymbol&&g.qty!=n
 const needs=data.groups.filter(g=>g.status==="needs");
 const manual=data.groups.filter(g=>g.status==="manual");
 const verifiedCount=verified.length, needsCount=needs.length;
+const EXCEL_VALUES_KEY="karlsarvet_capital_excel_values_v1";
+function applyExcelValueChanges(){
+  const today=new Date().toISOString().slice(0,10),manual=data.groups.filter(g=>g.status!=="auto"&&g.status!=="cash");
+  let saved=null;try{saved=JSON.parse(localStorage.getItem(EXCEL_VALUES_KEY)||"null");}catch(e){}
+  const previous=saved&&saved.values?saved.values:{},changes=saved&&saved.date===today&&saved.changes?saved.changes:{};
+  manual.forEach(g=>{const current=Number(g.value||0),before=Number(previous[g.name]);if(Number.isFinite(before)&&current!==before)changes[g.name]=Number(changes[g.name]||0)+(current-before);if(Math.abs(Number(changes[g.name]||0))>0.005)g.dayChange=Number(changes[g.name]);previous[g.name]=current;});
+  localStorage.setItem(EXCEL_VALUES_KEY,JSON.stringify({date:today,values:previous,changes}));
+}
+function renderDayChangeKronor(){
+  const contributing=data.groups.filter(g=>g.status!=="cash"&&Number.isFinite(Number(g.dayChange))&&Math.abs(Number(g.dayChange))>0.005);
+  if(!contributing.length){day.textContent="—";day.className="kpi kpi-link";return;}
+  const change=contributing.reduce((sum,g)=>sum+Number(g.dayChange),0);
+  day.textContent=(change>=0?"+":"−")+money(Math.abs(change));
+  day.className="kpi kpi-link "+(change>=0?"positive":"negative");
+}
 const LIVE_QUOTES_KEY="karlsarvet_capital_live_quotes_v1";
 const LIVE_QUOTES_MAX_AGE=15*60*1000;
 function loadLiveQuotes(){try{return JSON.parse(localStorage.getItem(LIVE_QUOTES_KEY)||"null");}catch(e){return null}}
@@ -325,7 +340,7 @@ function render(){
     (!lf||(lf==="cash"?x.status==="cash":lf==="listed"?x.status!=="cash"&&x.children.some(c=>c.tax==="Noterad"):x.status!=="cash"&&!x.children.some(c=>c.tax==="Noterad"))) &&
     (!cf||x.geos.includes(cf))
   );
-  if(window._holdingSort==="day") rr.sort((a,b)=>Math.abs(Number(b.dayChange||0))-Math.abs(Number(a.dayChange||0)));
+  if(window._holdingSort==="day") rr=rr.filter(x=>Number.isFinite(Number(x.dayChange))&&Math.abs(Number(x.dayChange))>0.005).sort((a,b)=>Math.abs(Number(b.dayChange))-Math.abs(Number(a.dayChange)));
   else rr.sort((a,b)=>b.value-a.value);
   const sortNote=document.getElementById("holdingSortNote");
   if(sortNote){
@@ -473,9 +488,7 @@ async function refreshLive(){
     document.getElementById("total").textContent=money(data.total); document.getElementById("holdingsKpi").textContent=money(data.holdings); document.getElementById("cash").textContent=money(data.cash);
     const fxRows=['EUR','USD','NOK','DKK'].map(c=>`<span style="display:inline-block;margin-right:18px"><strong>${c}/SEK</strong> ${fxRates[c]?fxRates[c].toFixed(4):'—'}</span>`).join(''); document.getElementById('fxSummary').innerHTML=fxRows;
     saveHistoryPoint();
-    const refreshNow=new Date(),firstDayOfSeptember=refreshNow.getFullYear()===2026&&refreshNow.getMonth()===8&&refreshNow.getDate()===1;
-    if(firstDayOfSeptember){const mtdText=document.getElementById("mtd").textContent;day.textContent=mtdText;day.className='kpi kpi-link '+(mtdText.startsWith('-')?'negative':'positive');}
-    else if(updated===verified.length){const priorTotal=Number(data.total)-Number(totalDay);const dayPct=priorTotal?Number(totalDay)/priorTotal:null;day.textContent=dayPct==null?'—':(dayPct>=0?'+':'')+new Intl.NumberFormat("sv-SE",{style:"percent",minimumFractionDigits:2,maximumFractionDigits:2}).format(dayPct);day.className='kpi kpi-link '+(dayPct!=null&&dayPct>=0?'positive':'negative');} else {day.textContent='—'; day.className='kpi kpi-link';}
+    renderDayChangeKronor();
     const fxOk=["EUR","USD","NOK","DKK"].every(k=>Number.isFinite(fxRates[k])&&fxRates[k]>0);
     document.getElementById("liveStatus").innerHTML=`🔵 <strong>${updated} av ${verified.length}</strong> verifierade positioner uppdaterade. ${skipped.length?`🛡️ ${skipped.length} behöll föregående värde: ${skipped.join(", ")}.`:""} ${fxOk?"💱 FX uppdaterad.":"⚠️ FX saknas – kontrollera Cloudflare Worker v4."} 🟡 ${needsCount} positioner väntar. Kassa <strong>${money(data.cash)}</strong> separat.`;
     saveLiveQuotes();
@@ -516,6 +529,7 @@ document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
 [...new Set(data.groups.flatMap(g=>g.sectors))].sort().forEach(v=>document.getElementById("sectorFilter").add(new Option(v,v)));
 [...new Set(data.groups.flatMap(g=>g.assetTypes))].sort().forEach(v=>document.getElementById("assetFilter").add(new Option(v,v)));
 
+applyExcelValueChanges();
 const restoredLive=restoreLiveQuotes();
 renderBreakdowns();
 
@@ -524,6 +538,7 @@ document.getElementById("cash").textContent=money(data.cash);
 document.getElementById("holdingsKpi").textContent=money(data.holdings);
 document.getElementById("fxSummary").textContent=restoredLive?"Senast sparade valutakurser laddade.":"Laddar aktuella valutakurser…";
 updatePeriodKPIs(loadHistory());
+renderDayChangeKronor();
 render();
 if(location.protocol!=="file:"&&(!restoredLive||Date.now()-Number(restoredLive.savedAt||0)>LIVE_QUOTES_MAX_AGE))refreshLive();
 </script><div class="mobile-only" style="display:none;margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.04);font-size:13px;">Tips: tryck på ett innehav för att se detaljer.</div>
