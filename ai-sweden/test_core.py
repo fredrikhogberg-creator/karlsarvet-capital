@@ -10,6 +10,10 @@ from model import composite_score, WEIGHTS
 from backtest import run_monthly_top10, performance_stats
 from run_pipeline import latest_report, fundamentals, parse_prices, select_universe
 from borsdata_client import get_json, BorsdataError
+from run_pipeline import rank_snapshot
+from run_backtest import load_inputs
+import tempfile
+from pathlib import Path
 
 
 class ModelTests(unittest.TestCase):
@@ -80,6 +84,28 @@ class EngineTests(unittest.TestCase):
 
 
 class DataTests(unittest.TestCase):
+    def test_base_ranking_requires_equal_factor_coverage(self):
+        frame = pd.DataFrame({"insId": range(6), "sectorId": [1]*6,
+            "momentum_raw": [.1,.2,.3,.4,.5,.6],
+            "earnings_yield": [.01,.02,.03,.04,.05,.06],
+            "fcf_yield": [.01,.02,.03,.04,.05,np.nan],
+            "roe": [.1,.2,.3,.4,.5,.6],
+            "operating_margin": [.1,.2,.3,.4,.5,.6],
+            "negative_debt_to_assets": [-.6,-.5,-.4,-.3,-.2,-.1],
+            "cash_conversion": [.5,.6,.7,.8,.9,1.]})
+        result = rank_snapshot(frame).set_index("insId")
+        self.assertFalse(result.loc[5, "base_eligible"])
+        self.assertTrue(pd.isna(result.loc[5, "base_score"]))
+        self.assertAlmostEqual(result.loc[4, "coverage"], .6)
+        self.assertTrue(result.total_score.isna().all())
+
+    def test_unverified_backtest_fails_before_reading_prices(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            (folder / "manifest.json").write_text('{}')
+            with self.assertRaisesRegex(ValueError, "Unverified historical inputs"):
+                load_inputs(folder)
+
     def test_future_publication_excluded(self):
         a = {"report_Date": "2026-07-15", "report_End_Date": "2026-06-30"}
         b = {"report_Date": "2026-10-20", "report_End_Date": "2026-09-30"}
@@ -93,6 +119,12 @@ class DataTests(unittest.TestCase):
                                "free_Cash_Flow": 40, "total_Equity": 500}, 100)
         self.assertEqual(result["earnings_yield"], .05)
         self.assertEqual(result["fcf_yield"], .04)
+        self.assertEqual(result["roe"], .1)
+
+    def test_report_property_casing(self):
+        result = fundamentals({"number_Of_Shares": 10, "profit_To_Equity_Holders": 50,
+                               "free_Cash_Flow": 40, "total_Equity": 500}, 100)
+        self.assertEqual(result["earnings_yield"], .05)
         self.assertEqual(result["roe"], .1)
 
     def test_future_prices_excluded(self):
