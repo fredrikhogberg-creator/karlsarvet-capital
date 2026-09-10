@@ -9,7 +9,7 @@ import pandas as pd
 from model import composite_score, WEIGHTS
 from backtest import run_monthly_top10, performance_stats
 from run_pipeline import latest_report, fundamentals, parse_prices, select_universe
-from borsdata_client import get_json, BorsdataError
+from borsdata_client import get_json, reports, BorsdataError
 from run_pipeline import rank_snapshot
 from run_backtest import load_inputs
 import tempfile
@@ -84,6 +84,12 @@ class EngineTests(unittest.TestCase):
 
 
 class DataTests(unittest.TestCase):
+    def test_combined_report_history_parameters(self):
+        with patch("borsdata_client.get_json", return_value={}) as request:
+            reports(3)
+        request.assert_called_once_with("instruments/3/reports", maxYearCount=20,
+                                        maxR12QCount=40, original=0)
+
     def test_base_ranking_requires_equal_factor_coverage(self):
         frame = pd.DataFrame({"insId": range(6), "sectorId": [1]*6,
             "momentum_raw": [.1,.2,.3,.4,.5,.6],
