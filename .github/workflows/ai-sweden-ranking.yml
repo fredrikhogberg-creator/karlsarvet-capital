@@ -10,8 +10,7 @@ on:
   push:
     branches: [codex/ai-sweden-data-ranking]
     paths:
-      - 'ai-sweden/**'
-      - '.github/workflows/ai-sweden-ranking.yml'
+      - 'ai-sweden/run_pipeline.py'
 
 permissions:
   contents: read
