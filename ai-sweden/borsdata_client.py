@@ -51,4 +51,6 @@ def stockprices(instrument_id, from_date=None, to_date=None):
 
 
 def reports(instrument_id):
-    return get_json(f"instruments/{int(instrument_id)}/reports", maxcount=20, original=0)
+    # The combined endpoint uses two count parameters, unlike /reports/r12.
+    return get_json(f"instruments/{int(instrument_id)}/reports",
+                    maxYearCount=20, maxR12QCount=40, original=0)
