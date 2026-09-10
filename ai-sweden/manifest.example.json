@@ -1,0 +1,11 @@
+{
+  "historical_universe_includes_delisted": false,
+  "universe_membership_is_point_in_time": false,
+  "prices_are_total_return": false,
+  "corporate_actions_verified": false,
+  "scores_use_original_publication_vintages": false,
+  "benchmark_name": "SIXRX",
+  "benchmark_is_total_return": false,
+  "sources": [],
+  "verification_notes": ""
+}

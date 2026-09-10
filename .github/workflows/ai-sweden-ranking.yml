@@ -1,0 +1,52 @@
+name: AI Sweden Data and Ranking
+
+on:
+  workflow_dispatch:
+    inputs:
+      as_of:
+        description: "Completed market day (YYYY-MM-DD)"
+        required: true
+        default: "2026-09-09"
+  push:
+    branches: [codex/ai-sweden-data-ranking]
+    paths:
+      - 'ai-sweden/run_pipeline.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-sweden-ranking
+  cancel-in-progress: false
+
+jobs:
+  rank:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: ai-sweden
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install tested dependencies
+        run: pip install pandas==2.2.3 numpy==2.3.5
+      - name: Verify scoring and backtest timing
+        run: python -m unittest -v test_core
+      - name: Collect data and calculate base ranking
+        env:
+          BORSDATA_API_KEY: ${{ secrets.BORSDATA_API_KEY }}
+          AS_OF: ${{ inputs.as_of || '2026-09-09' }}
+        run: python run_pipeline.py --as-of "$AS_OF"
+      - name: Save results and data coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-sweden-ranking
+          path: ai-sweden/results/
+          if-no-files-found: warn
+          retention-days: 14

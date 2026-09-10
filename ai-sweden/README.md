@@ -1,54 +1,101 @@
 # Karlsarvet AI Sweden v1.0
 
-First runnable foundation for the Sweden AI/quant model.
+## Aktuellt läge
 
-## Locked strategy
+Körbar datahämtning och **basranking** för svenska Large/Mid Cap. Basmodellen använder momentum, värdering och kvalitet: 60 % av den avtalade sexfaktorsmodellens ursprungliga vikt. Resultatet kallas därför baspoäng, inte fullständigt AI-betyg.
 
-- Universe: Nasdaq Stockholm Large + Mid Cap
-- Portfolio: monthly Top 10, equal weighted
-- Benchmark: SIXRX total-return index
-- Backtest: 2010-01-01 to 2026-09-09
-- Initial capital: SEK 1,000,000
-- Base transaction cost: 15 bps per buy/sell; sensitivity 5/15/30 bps
-- Score: Momentum 25%, earnings revisions 20%, valuation 20%, quality 15%, report reaction 10%, AI report analysis 10%
+Den befintliga portföljappen ligger separat i repositoryts rot. Denna kod finns i `ai-sweden/`.
 
-## Security
-
-The API key is **not** included in this project. GitHub Actions reads it from the repository secret `BORSDATA_API_KEY`.
-
-Never commit `.env` or the key to GitHub.
-
-## Local install and verify connection
+## Körningar
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate      # Windows: .venv\\Scripts\\Activate.ps1
 pip install -r requirements.txt
-export BORSDATA_API_KEY='YOUR_KEY'
-python run_bootstrap.py
+python -m unittest -v test_core
+# BORSDATA_API_KEY måste redan finnas i miljön.
+python run_pipeline.py --as-of 2026-09-09
 ```
 
-This downloads metadata plus a small official-example stock-price sample and never prints the key.
+GitHub Actions: **AI Sweden Data and Ranking**, `.github/workflows/ai-sweden-ranking.yml`.
+Den läser befintlig repository-secret `BORSDATA_API_KEY`. Ingen nyckel skrivs i kod, filer eller felmeddelanden.
+Körningen sker vid ändringar på utvecklingsgrenen och kan startas manuellt när workflow-filen finns på standardgrenen.
+Inget tidsschema och ingen orderläggning har aktiverats.
 
-## GitHub Actions
+Utdata i `results/`:
+- `RESULTAT.md`: läsbar sammanfattning.
+- `top10.csv`: tio likaviktade modellinnehav, endast när datahämtningen lyckats och minst tio bolag är jämförbara.
+- `ranking.csv`: råa nyckeltal, delpoäng, täckning och kvalificering.
+- `data_coverage.csv`: tillgänglig kurs- och rapporthistorik per bolag.
+- `run_summary.json`, `excluded.json`, `errors.json`: metod, status, bortval och fel.
 
-A manual workflow is included at `.github/workflows/ai-sweden-bootstrap.yml`. Once the repository secret `BORSDATA_API_KEY` has been added in GitHub, run the workflow from the Actions tab. It will test the Börsdata connection and upload the downloaded metadata/sample as a workflow artifact.
+Rådata sparas i `data/` under körningen, separat från resultatfilerna. Rådata checkas inte in och laddas inte upp som GitHub-artifact.
+Resultat-artifact sparas i 14 dagar. Varje körning hämtar data på nytt.
 
-## Backtest design
+## Basmodellens metod
 
-The engine in `backtest.py` is deliberately point-in-time: the monthly score matrix passed into it must contain only information known at each rebalance date. This prevents look-ahead bias.
+- Land och Large/Mid Cap löses från Börsdatas metadata.
+- Primära vanliga aktier (`instrument=0`) noterade i SEK används; sekundära aktieslag och preferensaktier tas bort.
+- Minst 270 kursobservationer, senaste kurs högst fyra kalenderdagar gammal.
+- Kurs minst 5 kr, medianomsättning över 63 handelsdagar minst 1 Mkr/dag.
+- Momentum: medel av 63/126/252 handelsdagars prisförändring, därefter percentilranking.
+- Värdering: vinst/börsvärde och fritt kassaflöde/börsvärde.
+- Kvalitet: vinst/eget kapital (periodslutsvärde), rörelsemarginal, omvänd nettoskuld/tillgångar och operativt kassaflöde/vinst.
+- Negativa vinster straffas i vinstavkastningen; kassakonvertering kräver positiv vinst. Alla sex fundamentala delmått krävs för jämförbar basranking.
+- Varje delmått winsoriseras vid 2/98-percentilen. Sektorjämförelse används vid minst fem giltiga observationer, annars hela urvalet.
+- Baspoäng = (25 × momentum + 20 × värdering + 15 × kvalitet) / 60.
+- Samtliga tre basfaktorer krävs för Top 10. Bristande hämtning stoppar Top 10 i stället för att ranka ett tyst förminskat urval.
 
-The production data pipeline should also reconstruct the historical investable universe, rather than using today's surviving companies back to 2010. This is necessary to reduce survivorship bias.
+Värderingen använder ännu inte EV/EBITA eller relativ historisk värdering. Kvaliteten använder ännu inte ROIC. Delmåtten är öppet redovisade förenklingar i basversionen.
+Prisbaserat momentum är ännu inte verifierat som totalavkastning.
+Finansbolag och bolag med ofullständiga rapportmått kan falla bort; bortfallet visas i täckningen.
 
-## Phase 1 factor implementation
+## Låst full modell
 
-- Momentum: 3/6/12 month price momentum.
-- Valuation: P/E, EV/EBITA and FCF yield, ranked cross-sectionally and ideally sector-relative.
-- Quality: ROIC/ROE, margins, leverage and cash conversion.
-- Report reaction: 1-5 trading-day abnormal return/volume after publication.
-- Earnings revisions: point-in-time consensus revision data; keep disabled until a reliable historical source is loaded.
-- Report AI: compare latest report vs previous quarter and prior-year quarter for guidance, order intake, organic growth, margins, cash flow and CEO language. Keep disabled until source PDFs/text are timestamped and ingested.
+| Faktor | Ursprunglig vikt | Status |
+|---|---:|---|
+| Momentum | 25 % | Basversion |
+| Estimatrevideringar | 20 % | Saknar historisk estimatkälla |
+| Värdering | 20 % | Basversion |
+| Kvalitet | 15 % | Basversion |
+| Rapportreaktion | 10 % | Ej implementerad |
+| Rapport-AI | 10 % | Ej implementerad |
 
-## Important limitation
+`total_score` lämnas tomt tills alla sex faktorer är giltiga. `coverage` anger andelen av hela sexfaktorsmodellen. Ett tillgängligt delbetyg ersätter aldrig det fullständiga betyget.
 
-Börsdata can provide historical prices, reports, KPIs and splits, but a robust 2010-2026 backtest also needs publication timestamps and historical universe handling. Analyst-estimate revisions are a separate point-in-time dataset and should not be approximated with today's estimates.
+## Backtest
+
+Avtalade inställningar: 1 Mkr, 2010-01-01–2026-09-09, månatlig Top 10, 10 % per aktie, SIXRX, 5/15/30 baspunkter per köp/sälj.
+
+Motorn har korrigerats:
+- En ranking efter dagens stängning verkställs först vid nästa handelsdags stängning.
+- Tidigare innehav bär avkastningen fram till affären.
+- Antalet andelar hålls fast mellan rebalanseringar; vikter driver med priserna.
+- Avgifter beräknas på faktiskt omsatt belopp med självfinansierad likaviktning.
+- Startkapitalet ingår i avkastnings- och drawdownberäkningen.
+- Saknad kurs på ett innehav stoppar testet; den fylls inte automatiskt framåt.
+- Färre än tio valbara instrument stoppar testet.
+
+```bash
+python run_backtest.py --inputs /path/to/verified-inputs
+```
+
+Inputmappen ska innehålla:
+- `prices.csv`: datumindex, instrument-ID-kolumner, positiva totalavkastningsjusterade priser.
+- `scores.csv`: datumindex, en ranking per månad, samma instrument-ID-kolumner, tomt för ej valbara.
+- `membership.csv`: datumindex som täcker rankingdagarna, instrument-ID-kolumner, 0/1 för historisk valbarhet.
+- `sixrx.csv`: datumindex och kolumnen `SIXRX`, totalavkastningsindex.
+- `manifest.json`: proveniens enligt `manifest.example.json`.
+
+Manifestet är en dokumentation av kontrollerat källunderlag, inte en automatisk garanti för datans riktighet. Sätt inga verifieringsflaggor till true utan att källmaterialet stöder dem.
+Backtestkörningen kräver också täckning av hela perioden, månatliga rankingar och medlemskap för varje poängsatt instrument.
+Den exporterar kapitalutveckling, årsresultat, affärer, kostnader, CAGR, volatilitet, Sharpe/Sortino (riskfri ränta 0), drawdown, beta och annualiserad regressionsalpha.
+Rullande jämförelser använder 252/756/1260 handelsdagar som approximation av 1/3/5 år.
+
+**Inget riktigt historiskt resultat finns ännu.** Dagens börslista får inte användas som om den vore listan från 2010. Senast nedladdade rapportdata kan vara reviderade trots historiskt rapportdatum. Utdelningar, avnoteringar, bolagshändelser, historiskt medlemskap och SIXRX måste verifieras innan full körning.
+
+## Officiell dokumentation
+
+- [Börsdata API](https://github.com/Borsdata-Sweden/API)
+- [Kursdata](https://github.com/Borsdata-Sweden/API/wiki/Stockprice)
+- [Rapportdata och valutakonvertering](https://github.com/Borsdata-Sweden/API/wiki/Reports)
+- [Instrumenttyper och föränderliga relationer](https://github.com/Borsdata-Sweden/API/wiki/Instruments)
+- [Officiella datamodeller](https://github.com/Borsdata-Sweden/API-CSharp-Client/tree/master/Borsdata.Api.Dal/Model)
