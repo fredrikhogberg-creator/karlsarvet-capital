@@ -1,0 +1,16 @@
+{
+  "start_date": "2010-01-01",
+  "end_date": "2026-09-09",
+  "initial_capital_sek": 1000000,
+  "portfolio_size": 10,
+  "rebalance": "monthly",
+  "transaction_cost_bps": 15,
+  "transaction_cost_scenarios_bps": [5, 15, 30],
+  "markets": ["Large Cap", "Mid Cap"],
+  "country": "Sverige",
+  "weights": {"momentum": 0.25, "earnings_revisions": 0.20, "valuation": 0.20, "quality": 0.15, "report_reaction": 0.10, "report_ai": 0.10},
+  "momentum_lookbacks_trading_days": [63, 126, 252],
+  "min_history_days": 270,
+  "min_price_sek": 5,
+  "min_median_daily_turnover_sek": 1000000
+}
