@@ -2,6 +2,11 @@ name: AI Sweden Börsdata Smoke Test
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ai-sweden/**'
+      - '.github/workflows/ai-sweden-smoke-test.yml'
 
 jobs:
   test-borsdata:
