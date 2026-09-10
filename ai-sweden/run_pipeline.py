@@ -112,6 +112,8 @@ def rank_snapshot(frame):
     out = composite_score(out)
     out["base_eligible"] = out[["momentum", "valuation", "quality"]].notna().all(axis=1)
     out["base_score"] = out["score_available"].where(out["base_eligible"])
+    out["missing_metrics"] = out[value_cols + quality_cols].isna().apply(
+        lambda row: ", ".join(row.index[row]), axis=1)
     return out.sort_values(["base_score", "insId"], ascending=[False, True], na_position="last")
 
 
@@ -145,7 +147,11 @@ def run(as_of, output, cache):
             coverage.append({"insId": iid, "name": item["name"], "price_days": len(p),
                 "first_price": str(p.index.min().date()) if len(p) else None,
                 "last_price": str(p.index.max().date()) if len(p) else None,
-                "r12_reports": len(rows(report_payload, "reportsR12"))})
+                "r12_reports": len(rows(report_payload, "reportsR12")),
+                "year_reports": len(rows(report_payload, "reportsYear")),
+                "quarter_reports": len(rows(report_payload, "reportsQuarter")),
+                "first_r12_period_end": min((str(r.get("report_End_Date", ""))
+                    for r in rows(report_payload, "reportsR12")), default=None)})
             reason = None
             if len(p) < config["min_history_days"]:
                 reason = "Otillräcklig kurshistorik"
