@@ -60,7 +60,9 @@ def latest_report(payload, as_of):
 
 def number(report, key):
     try:
-        n = float(report.get(key))
+        # API responses and older official clients differ in property casing.
+        normalized = {k.casefold(): v for k, v in report.items()}
+        n = float(normalized.get(key.casefold()))
         return n if np.isfinite(n) else np.nan
     except (TypeError, ValueError):
         return np.nan
@@ -190,6 +192,7 @@ def run(as_of, output, cache):
         "eligible_base_count": len(eligible), "excluded_count": len(excluded), "errors_count": len(errors),
         "full_model_coverage": .60, "active_factors": ["momentum", "valuation", "quality"],
         "missing_factors": ["earnings_revisions", "report_reaction", "report_ai"],
+        "report_field_names": sorted(report.keys()) if report else [],
         "benchmark_candidates": benchmark_candidates,
         "backtest_status": "blocked_missing_verified_historical_inputs",
         "backtest_blockers": [
