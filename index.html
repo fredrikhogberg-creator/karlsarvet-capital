@@ -266,14 +266,22 @@ const manual=data.groups.filter(g=>g.status==="manual");
 const verifiedCount=verified.length, needsCount=needs.length;
 const EXCEL_VALUES_KEY="karlsarvet_capital_excel_values_v1";
 function applyExcelValueChanges(){
-  const today=new Date().toISOString().slice(0,10),manual=data.groups.filter(g=>g.status!=="auto"&&g.status!=="cash");
+  const now=new Date(),today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-"),manual=data.groups.filter(g=>g.status!=="auto"&&g.status!=="cash");
   let saved=null;try{saved=JSON.parse(localStorage.getItem(EXCEL_VALUES_KEY)||"null");}catch(e){}
   const previous=saved&&saved.values?saved.values:{},changes=saved&&saved.date===today&&saved.changes?saved.changes:{};
-  manual.forEach(g=>{const current=Number(g.value||0),before=Number(previous[g.name]);if(Number.isFinite(before)&&current!==before)changes[g.name]=Number(changes[g.name]||0)+(current-before);if(Math.abs(Number(changes[g.name]||0))>0.005)g.dayChange=Number(changes[g.name]);previous[g.name]=current;});
-  // Borttagna Raymond Solar-poster är en värdenedskrivning 28 september, aldrig ett externt kassaflöde.
-  const localDay=[new Date().getFullYear(),String(new Date().getMonth()+1).padStart(2,"0"),String(new Date().getDate()).padStart(2,"0")].join("-");
-  const raymond=data.groups.find(g=>g.name==="Raymond Solar Power");
-  if(raymond&&localDay==="2026-09-28")raymond.dayChange=-19536070.869128;
+  manual.forEach(g=>{
+    const current=Number(g.value||0);
+    if(g.name==="Raymond Solar Power"){
+      // Reparera även en tidigare sparad felaktig dagsrörelse från version 71.
+      delete changes[g.name];
+      g.dayChange=today==="2026-09-28"?-19536070.869128:0;
+    }else{
+      const before=Number(previous[g.name]);
+      if(Number.isFinite(before)&&current!==before)changes[g.name]=Number(changes[g.name]||0)+(current-before);
+      if(Math.abs(Number(changes[g.name]||0))>0.005)g.dayChange=Number(changes[g.name]);
+    }
+    previous[g.name]=current;
+  });
   localStorage.setItem(EXCEL_VALUES_KEY,JSON.stringify({date:today,values:previous,changes}));
 }
 function renderDayChangeKronor(){
@@ -294,9 +302,11 @@ function saveLiveQuotes(){
 function restoreLiveQuotes(){
   const saved=loadLiveQuotes(); if(!saved||!saved.groups)return null;
   fxRates=Object.assign({SEK:1},saved.fxRates||{});
+  const savedDay=new Date(Number(saved.savedAt||0)),now=new Date();
+  const sameDay=savedDay.getFullYear()===now.getFullYear()&&savedDay.getMonth()===now.getMonth()&&savedDay.getDate()===now.getDate();
   verified.forEach(g=>{
     const q=saved.groups[g.marketSymbol]; if(!q||!Number.isFinite(Number(q.value))||Number(q.value)<=0)return;
-    g.value=Number(q.value);g.livePrice=Number(q.price);g.currency=q.currency||"SEK";g.fxRate=Number(q.fxRate||1);g.liveAt=q.liveAt;g.dayChange=Number(q.dayChange||0);g.dayChangePct=q.dayChangePct;
+    g.value=Number(q.value);g.livePrice=Number(q.price);g.currency=q.currency||"SEK";g.fxRate=Number(q.fxRate||1);g.liveAt=q.liveAt;g.dayChange=sameDay?Number(q.dayChange||0):0;g.dayChangePct=sameDay?q.dayChangePct:null;
     if(g.children.length===1&&Number.isFinite(Number(q.price))){g.children[0].price=Number(q.price);g.children[0].value=Number(q.value);}
   });
   data.holdings=data.groups.filter(g=>g.status!=="cash").reduce((s,g)=>s+Number(g.value||0),0);data.total=data.holdings+Number(data.cash||0);
@@ -439,7 +449,7 @@ function externalFlowOnDate(date){return loadTx().filter(x=>x.date===date).reduc
 function twrBetween(arr,startDate,endDate){const pts=arr.filter(p=>p.t.slice(0,10)>=startDate&&(!endDate||p.t.slice(0,10)<=endDate)).sort((a,b)=>a.t.localeCompare(b.t));if(pts.length<2)return null;let wealth=1;for(let i=1;i<pts.length;i++){const d=pts[i].t.slice(0,10), prev=Number(pts[i-1].v), cur=Number(pts[i].v), flow=externalFlowOnDate(d);if(!prev)return null;wealth*=((cur-flow)/prev)}return wealth-1}
 function updatePeriodKPIs(arr){const now=new Date(),y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0'),today=now.toISOString().slice(0,10),current=Number(data.total),currentHoldings=Number(data.holdings);const historyYtd=twrBetween(arr,`${y}-01-01`,today),historyMtd=twrBetween(arr,`${y}-${m}-01`,today);const ytd=y===2026&&current?current/PERFORMANCE_BASELINES.ytd.value-1:historyYtd;const mtd=y===2026&&m==="09"&&current?current/PERFORMANCE_BASELINES.mtd.value-1:historyMtd;const effective=arr.filter(p=>p.t.slice(0,10)!==today).concat([{t:new Date().toISOString(),v:current,h:currentHoldings,c:Number(data.cash)}]),base=effective.length?effective[0].v:null,since=base?twrBetween(effective,effective[0].t.slice(0,10),today):null,historyDay=arr.length>=2?twrBetween(arr,arr[arr.length-2].t.slice(0,10),today):null,pnlToday=data.groups.filter(g=>g.status!=="cash").reduce((sum,g)=>sum+(Number(g.dayChange)||0),0),dayBase=current-pnlToday;
 const localDate=[y,m,String(now.getDate()).padStart(2,"0")].join("-");
-const day=localDate==="2026-09-28"&&dayBase>0?pnlToday/dayBase:(y===2026&&m==="09"&&now.getDate()===1?mtd:historyDay);const fmtPct=v=>{if(v==null)return '—';const safe=Math.abs(v)<0.00005?0:v;return (safe>=0?'+':'')+(safe*100).toFixed(2)+' %'};const el=id=>document.getElementById(id);if(el('mtd'))el('mtd').textContent=fmtPct(mtd);if(el('ytd'))el('ytd').textContent=fmtPct(ytd);if(el('since'))el('since').textContent=fmtPct(since);if(el('day')){el('day').textContent=fmtPct(day);el('day').className='kpi '+(day!=null&&day>=0?'positive':'')}}
+const day=Math.abs(pnlToday)>0.005&&dayBase>0?pnlToday/dayBase:null;const fmtPct=v=>{if(v==null)return '—';const safe=Math.abs(v)<0.00005?0:v;return (safe>=0?'+':'')+(safe*100).toFixed(2)+' %'};const el=id=>document.getElementById(id);if(el('mtd'))el('mtd').textContent=fmtPct(mtd);if(el('ytd'))el('ytd').textContent=fmtPct(ytd);if(el('since'))el('since').textContent=fmtPct(since);if(el('day')){el('day').textContent=fmtPct(day);el('day').className='kpi '+(day!=null&&day>=0?'positive':'')}}
 function drawHistory(arr){const canvas=document.getElementById("chart"),ctx=canvas.getContext("2d"),w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);if(!arr.length){document.getElementById("historyStart").textContent="—";document.getElementById("historyLatest").textContent="—";document.getElementById("historyCount").textContent="0";return}const vals=arr.map(x=>x.v),min=Math.min(...vals),max=Math.max(...vals),pad=36,span=(max-min)||1;ctx.strokeStyle="#9aa7b3";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,10);ctx.lineTo(pad,h-pad);ctx.lineTo(w-10,h-pad);ctx.stroke();ctx.strokeStyle="#5aa7ff";ctx.lineWidth=3;ctx.beginPath();vals.forEach((v,i)=>{const x=pad+(w-pad-16)*(i/Math.max(1,vals.length-1)),y=10+(max-v)/span*(h-pad-20);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.stroke();document.getElementById("historyStart").textContent=money(vals[0]);document.getElementById("historyLatest").textContent=money(vals[vals.length-1]);document.getElementById("historyCount").textContent=String(arr.length)}
 function renderTx(){const arr=loadTx(), list=document.getElementById('txList');if(!list)return;const flow=arr.reduce((s,x)=>s+(x.type==='deposit'?Number(x.amount||0):x.type==='withdrawal'?-Number(x.amount||0):0),0);document.getElementById('flowSummary').textContent='Netto kapitalflöde: '+money(flow);if(!arr.length){list.innerHTML='<div class="small muted">Inga transaktioner registrerade ännu.</div>';return}const labels={buy:'Köp',sell:'Sälj',deposit:'Insättning',withdrawal:'Uttag',dividend:'Utdelning'};list.innerHTML='<table style="width:100%"><thead><tr><th>Datum</th><th>Typ</th><th>Innehav</th><th class="num">Belopp</th><th class="num">Antal</th><th>Kommentar</th><th></th></tr></thead><tbody>'+arr.slice().reverse().map((x,i)=>`<tr><td>${x.date}</td><td>${labels[x.type]||x.type}</td><td>${x.name||'—'}</td><td class="num">${money(x.amount)}</td><td class="num">${x.qty==null?'—':num(x.qty)}</td><td>${x.note||''}</td><td><button class="tab" type="button" onclick="deleteTx('${x.id}')">Ta bort</button></td></tr>`).join('')+'</tbody></table>'}
 function deleteTx(id){saveTx(loadTx().filter(x=>x.id!==id));renderTx();updatePeriodKPIs(loadHistory())}
@@ -517,7 +527,7 @@ function renderWeeklyReports(){
   host.innerHTML=reports.map((r,index)=>'<details class="weekly-item"'+(index===0?' open':'')+'><summary><span>'+reportEsc(r.week)+'</span><span class="weekly-date">'+reportEsc(r.date||"")+'</span></summary><div class="weekly-content"><h3 class="weekly-title">'+reportEsc(r.title||"Omvärldsanalys")+'</h3>'+section("Sammanfattning",r.summary)+section("Marknad och makro",r.marketMacro)+section("Portföljrelevans",r.portfolioRelevance)+section("Källor",r.sources)+'</div></details>').join("");
 }
 renderWeeklyReports();
-document.getElementById("adminVersion").textContent="Appversion 71";
+document.getElementById("adminVersion").textContent="Appversion 72";
 const reportSigned=(value,suffix="")=>{const n=Number(value);return Number.isFinite(n)?(n>0?"+":"")+new Intl.NumberFormat("sv-SE",{minimumFractionDigits:1,maximumFractionDigits:1}).format(n)+suffix:"—"};
 const reportTkr=value=>value==null?"—":new Intl.NumberFormat("sv-SE",{maximumFractionDigits:0}).format(Number(value));
 function renderMonthlyReport(){
